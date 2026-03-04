@@ -19,9 +19,9 @@ jobs:
       matrix:
         include:
           - arch: x64
-            runner: macos-15-intel
+            runner: macos-13
           - arch: arm64
-            runner: macos-15
+            runner: macos-14
 
     runs-on: ${{ matrix.runner }}
 
@@ -57,7 +57,7 @@ jobs:
         run: npm run build:electron
 
       - name: Prepare Node.js runtime
-        run: tsx scripts/prepare-node-runtime.ts
+        run: npx tsx scripts/prepare-node-runtime.ts
 
       - name: Build macOS installer
         run: npx electron-builder --mac dmg zip --${{ matrix.arch }}
