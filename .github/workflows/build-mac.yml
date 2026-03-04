@@ -19,9 +19,9 @@ jobs:
       matrix:
         include:
           - arch: x64
-            runner: macos-13
+            runner: macos-15-intel
           - arch: arm64
-            runner: macos-14
+            runner: macos-15
 
     runs-on: ${{ matrix.runner }}
 
@@ -32,13 +32,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: ".nvmrc"
+          node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install web dependencies
         run: cd web && npm ci
+
+      - name: Setup curl-impersonate
+        run: npm run setup -- --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build web frontend
         run: npm run build:web
@@ -51,9 +58,6 @@ jobs:
 
       - name: Prepare Node.js runtime
         run: tsx scripts/prepare-node-runtime.ts
-
-      - name: Setup curl-impersonate
-        run: npm run setup -- --force
 
       - name: Build macOS installer
         run: npx electron-builder --mac dmg zip --${{ matrix.arch }}

@@ -18,6 +18,15 @@ const FALLBACK_VERSION = "v1.4.4";
 const BIN_DIR = resolve(process.cwd(), "bin");
 const CACERT_URL = "https://curl.se/ca/cacert.pem";
 
+function githubHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { "Accept": "application/vnd.github+json" };
+  const token = process.env.GITHUB_TOKEN;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 interface PlatformInfo {
   /** Pattern to match the asset name in GitHub Releases */
   assetPattern: RegExp;
@@ -65,9 +74,7 @@ function getPlatformInfo(version: string): PlatformInfo {
 async function getLatestVersion(): Promise<string> {
   const apiUrl = `https://api.github.com/repos/${REPO}/releases/latest`;
   console.log(`[setup] Checking latest release...`);
-  const resp = await fetch(apiUrl, {
-    headers: { "Accept": "application/vnd.github+json" },
-  });
+  const resp = await fetch(apiUrl, { headers: githubHeaders() });
   if (!resp.ok) {
     console.warn(`[setup] Could not fetch latest release (${resp.status}), using fallback ${FALLBACK_VERSION}`);
     return FALLBACK_VERSION;
@@ -80,7 +87,7 @@ async function getDownloadUrl(info: PlatformInfo, version: string): Promise<stri
   const apiUrl = `https://api.github.com/repos/${REPO}/releases/tags/${version}`;
   console.log(`[setup] Fetching release info from ${apiUrl}`);
 
-  const resp = await fetch(apiUrl);
+  const resp = await fetch(apiUrl, { headers: githubHeaders() });
   if (!resp.ok) {
     throw new Error(`GitHub API returned ${resp.status}: ${await resp.text()}`);
   }
