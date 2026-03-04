@@ -3,13 +3,22 @@
   "version": "1.0.0",
   "description": "Reverse proxy that exposes Codex Desktop Responses API as OpenAI-compatible /v1/chat/completions",
   "type": "module",
+  "main": "build/electron/electron/main.js",
+  "engines": {
+    "node": "18.20.8"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "tsx watch src/index.ts",
     "dev:web": "cd web && npx vite",
     "build:web": "cd web && npx vite build",
-    "build": "npm run build:web && tsc",
+    "build:server": "tsc",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build": "npm run build:web && npm run build:server",
+    "electron:dev": "npm run build && npm run build:electron && electron build/electron/electron/main.js",
+    "dist:win": "npm run build && npm run build:electron && tsx scripts/prepare-node-runtime.ts && electron-builder --win nsis",
+    "dist:mac": "npm run build && npm run build:electron && tsx scripts/prepare-node-runtime.ts && electron-builder --mac dmg zip",
     "start": "node dist/index.js",
     "check-update": "tsx scripts/check-update.ts",
     "check-update:watch": "tsx scripts/check-update.ts --watch",
@@ -17,11 +26,11 @@
     "apply-update": "tsx scripts/apply-update.ts",
     "apply-update:dry": "tsx scripts/apply-update.ts --dry-run",
     "setup": "tsx scripts/setup-curl.ts",
-    "update": "tsx scripts/full-update.ts",
     "postinstall": "tsx scripts/setup-curl.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.0.0",
+    "electron-updater": "^6.3.9",
     "hono": "^4.0.0",
     "js-yaml": "^4.1.0",
     "undici": "^7.0.0",
@@ -34,10 +43,76 @@
     "@electron/asar": "^3.2.0",
     "@types/js-yaml": "^4.0.0",
     "@types/node": "^22.0.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
     "electron-to-chromium": "^1.5.302",
     "js-beautify": "^1.15.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",
     "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.codexproxy.desktop",
+    "productName": "Codex Proxy",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "build/electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": [
+          "**/*",
+          "!win-unpacked{,/**}",
+          "!*.exe",
+          "!*.blockmap",
+          "!builder-debug.yml",
+          "!builder-effective-config.yaml"
+        ]
+      },
+      {
+        "from": "node_modules",
+        "to": "node_modules"
+      },
+      {
+        "from": "public",
+        "to": "public"
+      },
+      {
+        "from": "config",
+        "to": "config"
+      },
+      {
+        "from": "bin",
+        "to": "bin"
+      },
+      {
+        "from": "scripts",
+        "to": "scripts"
+      },
+      {
+        "from": "electron-resources/node",
+        "to": "node"
+      }
+    ],
+    "asarUnpack": [
+      "dist/**",
+      "config/**",
+      "bin/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
   }
 }

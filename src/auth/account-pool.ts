@@ -10,9 +10,10 @@ import {
   existsSync,
   mkdirSync,
 } from "fs";
-import { resolve, dirname } from "path";
+import { dirname } from "path";
 import { randomBytes } from "crypto";
 import { getConfig } from "../config.js";
+import { resolveDataPath } from "../paths.js";
 import { jitter } from "../utils/jitter.js";
 import {
   decodeJwtPayload,
@@ -28,8 +29,8 @@ import type {
   AccountsFile,
 } from "./types.js";
 
-const ACCOUNTS_FILE = resolve(process.cwd(), "data", "accounts.json");
-const LEGACY_AUTH_FILE = resolve(process.cwd(), "data", "auth.json");
+const ACCOUNTS_FILE = resolveDataPath("accounts.json");
+const LEGACY_AUTH_FILE = resolveDataPath("auth.json");
 
 // P1-4: Lock TTL — auto-release locks older than this
 const ACQUIRE_LOCK_TTL_MS = 5 * 60 * 1000; // 5 minutes

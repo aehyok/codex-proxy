@@ -17,9 +17,10 @@ import {
   existsSync,
   mkdirSync,
 } from "fs";
-import { resolve, dirname } from "path";
+import { dirname } from "path";
+import { resolveDataPath } from "../paths.js";
 
-const COOKIE_FILE = resolve(process.cwd(), "data", "cookies.json");
+const COOKIE_FILE = resolveDataPath("cookies.json");
 
 interface StoredCookie {
   value: string;

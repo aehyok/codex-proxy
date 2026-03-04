@@ -1,21 +1,21 @@
 import { Hono } from "hono";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
 import type { AccountPool } from "../auth/account-pool.js";
 import { getConfig, getFingerprint } from "../config.js";
+import { resolveConfigPath, resolveDataPath, resolvePublicPath } from "../paths.js";
 
 export function createWebRoutes(accountPool: AccountPool): Hono {
   const app = new Hono();
 
-  const publicDir = resolve(process.cwd(), "public");
+  const publicDir = resolvePublicPath();
 
   // Serve Vite build assets
-  app.use("/assets/*", serveStatic({ root: "./public" }));
+  app.use("/assets/*", serveStatic({ root: publicDir }));
 
   app.get("/", (c) => {
     try {
-      const html = readFileSync(resolve(publicDir, "index.html"), "utf-8");
+      const html = readFileSync(resolvePublicPath("index.html"), "utf-8");
       return c.html(html);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -53,17 +53,16 @@ export function createWebRoutes(accountPool: AccountPool): Hono {
       .replace("{platform}", config.client.platform)
       .replace("{arch}", config.client.arch);
 
-    const promptsDir = resolve(process.cwd(), "config/prompts");
     const prompts: Record<string, boolean> = {
-      "desktop-context.md": existsSync(resolve(promptsDir, "desktop-context.md")),
-      "title-generation.md": existsSync(resolve(promptsDir, "title-generation.md")),
-      "pr-generation.md": existsSync(resolve(promptsDir, "pr-generation.md")),
-      "automation-response.md": existsSync(resolve(promptsDir, "automation-response.md")),
+      "desktop-context.md": existsSync(resolveConfigPath("prompts", "desktop-context.md")),
+      "title-generation.md": existsSync(resolveConfigPath("prompts", "title-generation.md")),
+      "pr-generation.md": existsSync(resolveConfigPath("prompts", "pr-generation.md")),
+      "automation-response.md": existsSync(resolveConfigPath("prompts", "automation-response.md")),
     };
 
     // Check for update state
     let updateState = null;
-    const statePath = resolve(process.cwd(), "data/update-state.json");
+    const statePath = resolveDataPath("update-state.json");
     if (existsSync(statePath)) {
       try {
         updateState = JSON.parse(readFileSync(statePath, "utf-8"));

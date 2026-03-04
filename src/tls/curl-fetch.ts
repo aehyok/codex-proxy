@@ -23,6 +23,9 @@ export interface CurlFetchResponse {
 export async function curlFetchGet(url: string): Promise<CurlFetchResponse> {
   const transport = getTransport();
   const headers = buildAnonymousHeaders();
+  if (!transport.isImpersonate()) {
+    headers["Accept-Encoding"] = "gzip, deflate";
+  }
 
   const result = await transport.get(url, headers, 30);
   return {
@@ -43,6 +46,9 @@ export async function curlFetchPost(
   const transport = getTransport();
   const headers = buildAnonymousHeaders();
   headers["Content-Type"] = contentType;
+  if (!transport.isImpersonate()) {
+    headers["Accept-Encoding"] = "gzip, deflate";
+  }
 
   const result = await transport.simplePost(url, headers, body, 30);
   return {

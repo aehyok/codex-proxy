@@ -6,7 +6,7 @@
  */
 
 import { existsSync } from "fs";
-import { resolve } from "path";
+import { resolveBinPath } from "../paths.js";
 
 export interface TlsTransportResponse {
   status: number;
@@ -94,7 +94,7 @@ function shouldUseFfi(): boolean {
   if (process.platform !== "win32") return false;
 
   // Check if libcurl-impersonate DLL exists (shipped as libcurl.dll)
-  const dllPath = resolve(process.cwd(), "bin", "libcurl.dll");
+  const dllPath = resolveBinPath("libcurl.dll");
   return existsSync(dllPath);
 }
 

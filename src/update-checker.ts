@@ -4,16 +4,16 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
-import { resolve } from "path";
 import { fork } from "child_process";
 import yaml from "js-yaml";
 import { mutateClientConfig, reloadAllConfigs } from "./config.js";
 import { jitterInt } from "./utils/jitter.js";
 import { curlFetchGet } from "./tls/curl-fetch.js";
 import { mutateYaml } from "./utils/yaml-mutate.js";
+import { getBaseDir, resolveBase, resolveConfigPath, resolveDataPath } from "./paths.js";
 
-const CONFIG_PATH = resolve(process.cwd(), "config/default.yaml");
-const STATE_PATH = resolve(process.cwd(), "data/update-state.json");
+const CONFIG_PATH = resolveConfigPath("default.yaml");
+const STATE_PATH = resolveDataPath("update-state.json");
 const APPCAST_URL = "https://persistent.oaistatic.com/codex-app-prod/appcast.xml";
 const POLL_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 
@@ -87,15 +87,11 @@ function triggerFullUpdate(): void {
   _updateInProgress = true;
   console.log("[UpdateChecker] Triggering full-update pipeline...");
 
-  const child = fork(
-    resolve(process.cwd(), "scripts/full-update.ts"),
-    ["--force"],
-    {
-      execArgv: ["--import", "tsx"],
-      stdio: "pipe",
-      cwd: process.cwd(),
-    },
-  );
+  const runtimeScript = resolveBase("dist", "update", "full-update-runner.js");
+  const child = fork(runtimeScript, ["--force"], {
+    stdio: "pipe",
+    cwd: getBaseDir(),
+  });
 
   // Kill the child if it hangs beyond the timeout
   const killTimer = setTimeout(() => {
@@ -166,7 +162,7 @@ export async function checkForUpdate(): Promise<UpdateState> {
 
   // Persist state
   try {
-    mkdirSync(resolve(process.cwd(), "data"), { recursive: true });
+    mkdirSync(resolveDataPath(), { recursive: true });
     writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
   } catch {
     // best-effort persistence

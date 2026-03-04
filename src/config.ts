@@ -1,9 +1,9 @@
 import { readFileSync } from "fs";
-import { resolve } from "path";
 import yaml from "js-yaml";
 import { z } from "zod";
 import { loadStaticModels } from "./models/model-store.js";
 import { triggerImmediateRefresh } from "./models/model-fetcher.js";
+import { resolveConfigPath } from "./paths.js";
 
 const ConfigSchema = z.object({
   api: z.object({
@@ -86,6 +86,15 @@ function applyEnvOverrides(raw: Record<string, unknown>): Record<string, unknown
       (raw.server as Record<string, unknown>).port = parsed;
     }
   }
+  if (process.env.HOST) {
+    (raw.server as Record<string, unknown>).host = process.env.HOST;
+  }
+  if (process.env.CODEX_PROXY_HOST) {
+    (raw.server as Record<string, unknown>).host = process.env.CODEX_PROXY_HOST;
+  }
+  if (process.env.CODEX_PROXY_FORCE_LOCALHOST === "1") {
+    (raw.server as Record<string, unknown>).host = "127.0.0.1";
+  }
   const proxyEnv = process.env.HTTPS_PROXY || process.env.https_proxy;
   if (proxyEnv) {
     if (!raw.tls) raw.tls = {};
@@ -99,8 +108,7 @@ let _fingerprint: FingerprintConfig | null = null;
 
 export function loadConfig(configDir?: string): AppConfig {
   if (_config) return _config;
-  const dir = configDir ?? resolve(process.cwd(), "config");
-  const raw = loadYaml(resolve(dir, "default.yaml")) as Record<string, unknown>;
+  const raw = loadYaml(configDir ?? resolveConfigPath("default.yaml")) as Record<string, unknown>;
   applyEnvOverrides(raw);
   _config = ConfigSchema.parse(raw);
   return _config;
@@ -108,8 +116,7 @@ export function loadConfig(configDir?: string): AppConfig {
 
 export function loadFingerprint(configDir?: string): FingerprintConfig {
   if (_fingerprint) return _fingerprint;
-  const dir = configDir ?? resolve(process.cwd(), "config");
-  const raw = loadYaml(resolve(dir, "fingerprint.yaml"));
+  const raw = loadYaml(configDir ?? resolveConfigPath("fingerprint.yaml"));
   _fingerprint = FingerprintSchema.parse(raw);
   return _fingerprint;
 }
@@ -132,8 +139,7 @@ export function mutateClientConfig(patch: Partial<AppConfig["client"]>): void {
 /** Reload config from disk (hot-reload after full-update).
  *  P1-5: Load to temp first, then swap atomically to avoid null window. */
 export function reloadConfig(configDir?: string): AppConfig {
-  const dir = configDir ?? resolve(process.cwd(), "config");
-  const raw = loadYaml(resolve(dir, "default.yaml")) as Record<string, unknown>;
+  const raw = loadYaml(configDir ?? resolveConfigPath("default.yaml")) as Record<string, unknown>;
   applyEnvOverrides(raw);
   const fresh = ConfigSchema.parse(raw);
   _config = fresh;
@@ -143,8 +149,7 @@ export function reloadConfig(configDir?: string): AppConfig {
 /** Reload fingerprint from disk (hot-reload after full-update).
  *  P1-5: Load to temp first, then swap atomically. */
 export function reloadFingerprint(configDir?: string): FingerprintConfig {
-  const dir = configDir ?? resolve(process.cwd(), "config");
-  const raw = loadYaml(resolve(dir, "fingerprint.yaml"));
+  const raw = loadYaml(configDir ?? resolveConfigPath("fingerprint.yaml"));
   const fresh = FingerprintSchema.parse(raw);
   _fingerprint = fresh;
   return _fingerprint;
